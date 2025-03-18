@@ -1,3 +1,5 @@
+package nnet;
+
 public class Main{
     public static void main(String[] args) {
         int[] shape = {2,4,6,1};

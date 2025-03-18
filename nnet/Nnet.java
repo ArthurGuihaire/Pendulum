@@ -1,3 +1,5 @@
+package nnet;
+
 import java.io.FileWriter;
 import java.io.FileReader;
 import java.io.BufferedReader;
@@ -28,11 +30,22 @@ public class Nnet {
         this.num_nodes = numnodes;
     }
 
+    public Nnet copy(){
+        return new Nnet(this.connection_weights, this.biases, this.num_nodes);
+    }
+
     public Nnet(double[][][] weights, double[][] node_biases, int[] shape){
-        this.num_nodes = shape;
+        this.num_nodes = shape.clone();
         this.num_layers = shape.length;
-        this.connection_weights = weights;
-        this.biases = node_biases;
+        this.connection_weights = new double[this.num_layers-1][][];
+        this.biases = new double[this.num_layers-1][];
+        for(int layer = 0; layer < this.num_layers-1; layer++){
+            this.connection_weights[layer] = new double[shape[layer]][];
+            for(int i = 0; i < shape[layer]; i++){
+                this.connection_weights[layer][i] = weights[layer][i].clone();
+            }
+            this.biases[layer] = node_biases[layer].clone();
+        }
     }
 
     public double[] compute_output_values(double[] input){
@@ -70,13 +83,6 @@ public class Nnet {
         }
         return computed_values;
     }
-
-    /* raw_values[num_layers]
-     * layer_errors[num_layers]
-     * computed_values[num_layers]
-     * biases[num_layers-1]
-     * connection_weights[num_layers-1]
-     */
 
     public void train(double[] input, double[] target_output, double learning_rate){
         double[][] computed_values = compute_all_values(input);
@@ -196,12 +202,23 @@ public class Nnet {
         }
     }
 
-    public static double sigmoid(double x){
+    public void modify_randomly(double learning_rate){
+        for(int layer = 0; layer<this.num_layers-1; layer++){
+            for(int j = 0; j<this.num_nodes[layer+1]; j++){
+                this.biases[layer][j] += (2*Math.random()-1) * learning_rate;
+                for(int i = 0; i<this.num_nodes[layer]; i++){
+                    this.connection_weights[layer][i][j] += (2*Math.random()-1) * learning_rate;
+                }
+            }
+        }
+    }
+
+    private static double sigmoid(double x){
         return 1/(1+Math.exp(-x));
     }
 
     // Input is a pre-sigmoid-activated value
-    public static double sigmoid_derivative(double sigmoid_value){
+    private static double sigmoid_derivative(double sigmoid_value){
         return sigmoid_value * (1-sigmoid_value);
     }
 
