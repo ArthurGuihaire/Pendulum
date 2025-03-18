@@ -61,7 +61,12 @@ public class Nnet {
                 for(int j=0; j<this.num_nodes[layer-1]; j++){
                     sum += values[layer-1][j] * this.connection_weights[layer-1][j][i];
                 }
-                values[layer][i] = sigmoid(sum+biases[layer-1][i]);
+                if(layer == num_layers-1){
+                    values[layer][i] = sum+biases[layer-1][i];
+                }
+                else{
+                    values[layer][i] = sigmoid(sum+biases[layer-1][i]);
+                }
             }
         }
         return values[num_layers-1];
@@ -78,7 +83,12 @@ public class Nnet {
                 for(int j=0; j<this.num_nodes[layer-1]; j++){
                     sum += computed_values[layer-1][j] * this.connection_weights[layer-1][j][i];
                 }
-                computed_values[layer][i] = sigmoid(sum+biases[layer-1][i]);
+                if(layer == num_layers-1){
+                    computed_values[layer][i] = sum+biases[layer-1][i];
+                }
+                else{
+                    computed_values[layer][i] = sigmoid(sum+biases[layer-1][i]);
+                }
             }
         }
         return computed_values;
