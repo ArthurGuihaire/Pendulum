@@ -12,7 +12,7 @@ public class Pendulum{
     public static final int pendulumLength = 300;
     private static final double g = 1;
     private static final double friction_factor = 0.995;
-    private static final int fps = 60;
+    private static final int fps = 30;
     private static final int iterations = 1800;
     private static final int score_frequency = 20;
     public static double xRel;
@@ -21,8 +21,10 @@ public class Pendulum{
     private static double centerVelOld;
     private static Timer timer;
     private static JFrame frame;
+    private static BasicUI ui;
     private static BasicGraphics bg;
     private static int userScore;
+    private static double x;
     public static void main(String[] args){
         angle = Math.PI*3/2;
         angularVelocity = 0.0;
@@ -34,6 +36,16 @@ public class Pendulum{
             }
             else if(arg.equals("custom")){
                 useCustomName = true;
+            }
+            else if(arg.equals("visualize")){
+                if(useCustomName){
+                    System.out.print("Filename to test: ");
+                    visualizeAI(Nnet.create_from_file(kb.nextLine()));
+                }
+                else{
+                    System.out.print("Which generation: ");
+                    visualizeAI(Nnet.create_from_file("training_examples/generation_"+kb.nextLine()+".txt"));
+                }
             }
             else if(arg.equals("test")){
                 if(useCustomName){
@@ -112,7 +124,76 @@ public class Pendulum{
             @Override
             public void actionPerformed(ActionEvent e){
                 doStuffUI(count);
+                ui.repaint();
+                if(count == iterations){
+                    timer.stop();
+                    System.out.println("Your score: "+userScore+"\nFinal v: "+angularVelocity);
+                }
+                count++;
+            }
+        });
+        frame.setSize(2400,800);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        ui = new BasicUI();
+        frame.add(ui);
+        frame.setVisible(true);
+        frame.getContentPane().setBackground(Color.BLACK);
+        frame.repaint();
+        // Loop
+        timer.start();
+    }
+
+    //Assumes an infinite map
+    private static int scoreNnet(Nnet nnet){
+        userScore = 0;
+        x = 0;
+        angle = Math.PI/4;
+        angularVelocity = 0;
+        double[] input = new double[4];
+        centerVel = nnet.compute_output_values(input)[0];
+        for(int i = 0; i<iterations; i++){
+            centerVelOld = centerVel;
+            updateInput(input);
+            centerVel = 1000*nnet.compute_output_values(input)[0];
+            x += centerVel;
+            physics(centerVel - centerVelOld);
+            if(i % score_frequency == 0){
+                userScore += Math.max(0, -yRel);
+                userScore -= 5000*Math.pow(angularVelocity, 2);
+            }
+        }
+        return userScore;
+    }
+
+    private static void testAI(Nnet nnet){
+        System.out.println(scoreNnet(nnet) + ", velocity " + angularVelocity + ", xpos "+x);
+    }
+
+    private static void visualizeAI(Nnet nnet){
+        scoreNnet(nnet);
+        double addGraphicVel = (-x)/iterations;
+        angle = Math.PI/4;
+        angularVelocity = 0;
+        userScore = 0;
+        double[] input = new double[4];
+        updateInput(input);
+        centerVel = nnet.compute_output_values(input)[0];
+        frame = new JFrame("Inverted Pendulum");
+        timer = new Timer(1000/fps, new ActionListener() {
+            int count = 0;
+            @Override
+            public void actionPerformed(ActionEvent e){
+                centerVelOld = centerVel;
+                updateInput(input);
+                centerVel = 1000*nnet.compute_output_values(input)[0];
+                System.out.println(centerVel);
+                physics(centerVel-centerVelOld);
+                bg.moveX((int)(centerVel+addGraphicVel));
                 bg.repaint();
+                if(count%score_frequency == 0){
+                    userScore += Math.max(0, -yRel);
+                    userScore -= 5*Math.pow(angularVelocity, 2);
+                }
                 if(count == iterations){
                     timer.stop();
                     System.out.println("Your score: "+userScore+"\nFinal v: "+angularVelocity);
@@ -131,41 +212,9 @@ public class Pendulum{
         timer.start();
     }
 
-    //Assumes an infinite map
-    private static int scoreNnet(Nnet nnet){
-        int count = 0;
-        int score = 0;
-        angle = Math.PI/4;
-        angularVelocity = 0;
-        double[] input = new double[4];
-        centerVel = nnet.compute_output_values(input)[0];
-        for(int i = 0; i<iterations; i++){
-            centerVelOld = centerVel;
-            input[0] = Math.cos(angle);
-            input[1] = Math.sin(angle);
-            input[2] = angularVelocity;
-            input[3] = centerVelOld;
-
-            centerVel = 1000*nnet.compute_output_values(input)[0];
-            //System.out.println(" outputted "+centerVel);
-            physics(centerVel - centerVelOld);
-            if(count == score_frequency){
-                count = 0;
-                score += Math.max(0, -yRel);
-                score -= 5000*Math.pow(angularVelocity, 2);
-            }
-            count++;
-        }
-        return score;
-    }
-
-    private static void testAI(Nnet nnet){
-        System.out.println(scoreNnet(nnet) + ", velocity " + angularVelocity);
-    }
-
     private static void doStuffUI(int count){
         centerVelOld = centerVel;
-        centerVel = bg.getMouseMovement();
+        centerVel = ui.getMouseMovement();
         physics(centerVel - centerVelOld);
         if(count%score_frequency == 0){
             userScore += Math.max(0, -yRel);
@@ -181,6 +230,14 @@ public class Pendulum{
         xRel = pendulumLength*Math.cos(angle);
         yRel = pendulumLength*Math.sin(angle);
     }
+
+    private static void updateInput(double[] input){
+        input[0] = Math.cos(angle);
+        input[1] = Math.sin(angle);
+        input[2] = angularVelocity;
+        input[3] = centerVelOld;
+    }
+
     public static void printarray(double[] array){
         for(int i=0; i<array.length; i++){
             System.out.print((array[i]) + ", ");
