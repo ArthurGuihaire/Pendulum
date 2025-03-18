@@ -26,23 +26,34 @@ public class Pendulum{
     public static void main(String[] args){
         angle = Math.PI*3/2;
         angularVelocity = 0.0;
+        boolean useCustomName = false;
+        Scanner kb = new Scanner(System.in);
         for(String arg:args){
             if(arg.equals("gui")){
                 simulateUI();
             }
-            else if(arg.equals("test")){
-                Scanner kb = new Scanner(System.in);
-                testAI(kb.nextLine());
-                kb.close();
+            else if(arg.equals("custom")){
+                useCustomName = true;
             }
-            else{
+            else if(arg.equals("test")){
+                if(useCustomName){
+                    System.out.print("Filename to test: ");
+                    testAI(Nnet.create_from_file(kb.nextLine()));
+                }
+                else{
+                    System.out.print("Which generation: ");
+                    testAI(Nnet.create_from_file("training_examples/generation_"+kb.nextLine()+".txt"));
+                }
+            }
+            else if(arg.equals("train")){
                 geneticAI();
             }
         }
+        kb.close();
     }
 
     private static void geneticAI() {
-        double learning_rate = 0.005;
+        double learning_rate = 0.01;
         int startingPopulation = 200;
         int keepHighScores = 30;
         int copiesEach = 5;
@@ -54,8 +65,8 @@ public class Pendulum{
         for (int i = 0; i < startingPopulation; i++) {
             population[i] = new Nnet(shape);
         }
-        for(int nul = 0; nul<100; nul++){
-            for(int generation = 0; generation < 100; generation++){
+        for(int generation = 0; generation<16; generation++){
+            for(int round = 0; round < 16; round++){
                 for(int i = 0; i < startingPopulation; i++){
                     scores[i] = scoreNnet(population[i]);
                     if(scores[i] > highestScore){
@@ -85,8 +96,11 @@ public class Pendulum{
                 }
                 System.out.println();
             }
-            bestNnets[0].write_to_file("training_examples/generation_"+nul+".txt");
-            System.out.println("Saved to file: training_examples/generation_"+nul+".txt");
+            learning_rate *= 0.4;
+            bestNnets[0].write_to_file("training_examples/generation_"+generation+".txt");
+            System.out.println("Saved to file: training_examples/generation_"+generation+".txt");
+            System.out.print("Best of this gen finished with score ");
+            testAI(bestNnets[0]);
         }
     }
 
@@ -145,9 +159,8 @@ public class Pendulum{
         return score;
     }
 
-    private static void testAI(String fileName){
-        Nnet nnet = Nnet.create_from_file(fileName);
-        System.out.println(scoreNnet(nnet) + ", " + angularVelocity);
+    private static void testAI(Nnet nnet){
+        System.out.println(scoreNnet(nnet) + ", velocity " + angularVelocity);
     }
 
     private static void doStuffUI(int count){
