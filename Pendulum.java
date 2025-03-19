@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 import java.util.Scanner;
 public class Pendulum{
+    // region Variables
     private static double angle;
     private static double angularVelocity;
     public static final int pendulumLength = 300;
@@ -25,6 +26,8 @@ public class Pendulum{
     private static BasicGraphics bg;
     private static int userScore;
     private static double x;
+    private static double movement_cost = 0;
+    //endregion
     public static void main(String[] args){
         angle = Math.PI*3/2;
         angularVelocity = 0.0;
@@ -67,8 +70,8 @@ public class Pendulum{
     private static void geneticAI() {
         double learning_rate = 0.01;
         int startingPopulation = 200;
-        int keepHighScores = 30;
-        int copiesEach = 5;
+        int keepHighScores = 10;
+        int copiesEach = 15;
         int highestScore = 0;
         int[] shape = {4, 16, 1};
         Nnet[] population = new Nnet[startingPopulation];
@@ -77,8 +80,8 @@ public class Pendulum{
         for (int i = 0; i < startingPopulation; i++) {
             population[i] = new Nnet(shape);
         }
-        for(int generation = 0; generation<16; generation++){
-            for(int round = 0; round < 32; round++){
+        for(int generation = 0; generation<24; generation++){
+            for(int round = 0; round < 50; round++){
                 for(int i = 0; i < startingPopulation; i++){
                     scores[i] = scoreNnet(population[i]);
                     if(scores[i] > highestScore){
@@ -88,12 +91,7 @@ public class Pendulum{
                 }
                 Integer[] indices = IntStream.range(0, startingPopulation).boxed().toArray(Integer[]::new);
                 Arrays.sort(indices, (a, b) -> Integer.compare(scores[b], scores[a]));
-                System.out.print("High scores for current population:");
-                for (int i = 0; i < keepHighScores; i++) {
-                    int idx = indices[i];
-                    int bestScore = scores[idx];
-                    System.out.print(bestScore + " ");
-                }
+                System.out.print("High score for current population: "+scores[indices[0]]);
                 for (int i = 0; i < keepHighScores; i++){
                     bestNnets[i] = population[indices[i]];
                 }
@@ -108,7 +106,16 @@ public class Pendulum{
                 }
                 System.out.println();
             }
-            learning_rate *= 0.4;
+            if(generation<4){
+                learning_rate*=0.4;
+            }
+            if (generation==4){
+                learning_rate = 0.001;
+            }
+            if(generation>4){
+                learning_rate *= 0.6;
+                movement_cost = Math.min(movement_cost+0.1, 0.5);
+            }
             bestNnets[0].write_to_file("training_examples/generation_"+generation+".txt");
             System.out.println("Saved to file: training_examples/generation_"+generation+".txt");
             System.out.print("Best of this gen finished with score ");
@@ -143,7 +150,6 @@ public class Pendulum{
         timer.start();
     }
 
-    //Assumes an infinite map
     private static int scoreNnet(Nnet nnet){
         userScore = 0;
         x = 0;
@@ -158,15 +164,18 @@ public class Pendulum{
             x += centerVel;
             physics(centerVel - centerVelOld);
             if(i % score_frequency == 0){
-                userScore += Math.max(0, -yRel);
+                if(yRel<-290){
+                    userScore += 300;
+                }
                 userScore -= 5000*Math.pow(angularVelocity, 2);
+                userScore -= movement_cost*Math.abs(centerVel);
             }
         }
         return userScore;
     }
 
     private static void testAI(Nnet nnet){
-        System.out.println(scoreNnet(nnet) + ", velocity " + angularVelocity + ", xpos "+x);
+        System.out.println(scoreNnet(nnet) + ", velocity " + angularVelocity + ", xpos "+x+", xvel " + centerVel);
     }
 
     private static void visualizeAI(Nnet nnet){
@@ -186,13 +195,12 @@ public class Pendulum{
                 centerVelOld = centerVel;
                 updateInput(input);
                 centerVel = 1000*nnet.compute_output_values(input)[0];
-                System.out.println(centerVel);
                 physics(centerVel-centerVelOld);
                 bg.moveX((int)(centerVel+addGraphicVel));
                 bg.repaint();
                 if(count%score_frequency == 0){
                     userScore += Math.max(0, -yRel);
-                    userScore -= 5*Math.pow(angularVelocity, 2);
+                    userScore -= 5*Math.sqrt(Math.abs(angularVelocity));
                 }
                 if(count == iterations){
                     timer.stop();
@@ -235,7 +243,7 @@ public class Pendulum{
         input[0] = Math.cos(angle);
         input[1] = Math.sin(angle);
         input[2] = angularVelocity;
-        input[3] = centerVelOld;
+        input[3] = centerVelOld/1000;
     }
 
     public static void printarray(double[] array){

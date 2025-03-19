@@ -84,7 +84,7 @@ public class Nnet {
                     sum += computed_values[layer-1][j] * this.connection_weights[layer-1][j][i];
                 }
                 if(layer == num_layers-1){
-                    computed_values[layer][i] = sum+biases[layer-1][i];
+                    computed_values[layer][i] = 20*(sum+biases[layer-1][i])/(20+Math.abs(sum+biases[layer-1][i]));
                 }
                 else{
                     computed_values[layer][i] = sigmoid(sum+biases[layer-1][i]);
