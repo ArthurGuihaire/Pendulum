@@ -14,7 +14,7 @@ public class Pendulum{
     private static final double friction_factor = 0.995;
     private static final int fps = 30;
     private static final int iterations = 1800;
-    private static final int score_frequency = 20;
+    private static final int score_frequency = 1;
     public static double xRel;
     public static double yRel;
     private static double centerVel;
@@ -78,7 +78,7 @@ public class Pendulum{
             population[i] = new Nnet(shape);
         }
         for(int generation = 0; generation<16; generation++){
-            for(int round = 0; round < 16; round++){
+            for(int round = 0; round < 32; round++){
                 for(int i = 0; i < startingPopulation; i++){
                     scores[i] = scoreNnet(population[i]);
                     if(scores[i] > highestScore){
