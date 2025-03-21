@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class Nnet {
     private double[][][] connection_weights;
@@ -31,21 +32,26 @@ public class Nnet {
     }
 
     public Nnet copy(){
-        return new Nnet(this.connection_weights, this.biases, this.num_nodes);
+        double[][][] newWeights = new double[this.connection_weights.length][][];
+        double[][] newBiases = new double[this.biases.length][];
+        
+        for (int layer = 0; layer < this.connection_weights.length; layer++) {
+            newWeights[layer] = new double[this.connection_weights[layer].length][];
+            for (int i = 0; i < this.connection_weights[layer].length; i++) {
+                newWeights[layer][i] = Arrays.copyOf(this.connection_weights[layer][i], this.connection_weights[layer][i].length);
+            }
+            newBiases[layer] = Arrays.copyOf(this.biases[layer], this.biases[layer].length);
+        }
+
+        return new Nnet(newWeights, newBiases, Arrays.copyOf(this.num_nodes, this.num_nodes.length));
     }
 
+
     public Nnet(double[][][] weights, double[][] node_biases, int[] shape){
-        this.num_nodes = shape.clone();
+        this.connection_weights = weights;
+        this.biases = node_biases;
+        this.num_nodes = shape;
         this.num_layers = shape.length;
-        this.connection_weights = new double[this.num_layers-1][][];
-        this.biases = new double[this.num_layers-1][];
-        for(int layer = 0; layer < this.num_layers-1; layer++){
-            this.connection_weights[layer] = new double[shape[layer]][];
-            for(int i = 0; i < shape[layer]; i++){
-                this.connection_weights[layer][i] = weights[layer][i].clone();
-            }
-            this.biases[layer] = node_biases[layer].clone();
-        }
     }
 
     public double[] compute_output_values(double[] input){
@@ -62,6 +68,7 @@ public class Nnet {
                     sum += values[layer-1][j] * this.connection_weights[layer-1][j][i];
                 }
                 if(layer == num_layers-1){
+                    //clamp -128 to 128 values[layer][i] = Math.min(128,Math.max(-128,100*(sum+biases[layer-1][i])));
                     values[layer][i] = sum+biases[layer-1][i];
                 }
                 else{
@@ -74,7 +81,7 @@ public class Nnet {
 
     public double[][] compute_all_values(double[] input){
         double[][] computed_values = new double[num_layers][];
-        computed_values[0] = input;
+        computed_values[0] = input.clone();
         double sum;
         for(int layer=1; layer<this.num_layers; layer++){
             computed_values[layer] = new double[num_nodes[layer]];
@@ -84,7 +91,7 @@ public class Nnet {
                     sum += computed_values[layer-1][j] * this.connection_weights[layer-1][j][i];
                 }
                 if(layer == num_layers-1){
-                    computed_values[layer][i] = 20*(sum+biases[layer-1][i])/(20+Math.abs(sum+biases[layer-1][i]));
+                    computed_values[layer][i] = sum+biases[layer-1][i];
                 }
                 else{
                     computed_values[layer][i] = sigmoid(sum+biases[layer-1][i]);
@@ -101,7 +108,8 @@ public class Nnet {
         double[][] layer_errors = new double[this.num_layers][];
         layer_errors[this.num_layers-1] = new double[this.num_nodes[this.num_layers-1]];
         for(int i = 0; i<this.num_nodes[this.num_layers-1]; i++){
-            layer_errors[this.num_layers-1][i] = (computed_values[this.num_layers-1][i] - target_output[i]) * sigmoid_derivative(computed_values[this.num_layers-1][i]);
+            //layer_errors[this.num_layers-1][i] = (computed_values[this.num_layers-1][i] - target_output[i]) * sigmoid_derivative(computed_values[this.num_layers-1][i]);
+            layer_errors[this.num_layers-1][i] = (computed_values[this.num_layers-1][i] - target_output[i]);
         }
         //Backpropogation
         double error; // dError/dRaw

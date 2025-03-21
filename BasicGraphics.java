@@ -2,10 +2,12 @@ import javax.swing.*;
 import java.awt.*;
 
 public class BasicGraphics extends JPanel {
-    protected int x = 1200;
-    protected int y = 400;
+    protected int x;
+    protected int y;
     public BasicGraphics(){
         setBackground(Color.BLACK);
+        this.x = 1200;
+        this.y = 400;
     }
     @Override
     protected void paintComponent(Graphics g) {
