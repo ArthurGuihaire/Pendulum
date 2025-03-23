@@ -231,20 +231,12 @@ public class Nnet {
         }
     }
 
-    private static double sigmoid(double x){
+    protected static double sigmoid(double x){
         return 1/(1+Math.exp(-x));
     }
 
     // Input is a pre-sigmoid-activated value
-    private static double sigmoid_derivative(double sigmoid_value){
+    protected static double sigmoid_derivative(double sigmoid_value){
         return sigmoid_value * (1-sigmoid_value);
-    }
-
-    public static double[] generate_random_array(int arr_length){
-        double[] output = new double[arr_length];
-        for(int i=0; i<arr_length; i++){
-            output[i] = Math.random();
-        }
-        return output;
     }
 }
