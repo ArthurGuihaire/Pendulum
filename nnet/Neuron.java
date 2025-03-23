@@ -52,6 +52,9 @@ public class Neuron {
     }
 
     protected int removeRandomConnection(){
+        if(this.numInputs == 0){
+            return -1;
+        }
         int index = (int)(Math.random() * this.numInputs);
         Neuron[] newNeurons = new Neuron[this.numInputs-1];
         int returnValue = this.inputConnections[index].id;
@@ -78,6 +81,15 @@ public class Neuron {
         this.inputConnections = newNeurons;
         this.numInputs--;
         return true;
+    }
+
+    protected boolean containsConnection(Neuron connection){
+        for(int i = 0; i < this.numInputs; i++){
+            if(this.inputConnections[i] == connection){
+                return true;
+            }
+        }
+        return false;
     }
 
     protected void setValue(double value){

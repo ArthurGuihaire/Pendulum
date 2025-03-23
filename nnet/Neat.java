@@ -74,14 +74,39 @@ public class Neat {
         return true;
     }
 
-    private void addConnection(){
+    private boolean addConnection(){
         Neuron[] sortedByLayer = new Neuron[this.numNeurons];
         Arrays.sort(sortedByLayer, (a, b) -> Integer.compare(b.id, a.id));
+        int[][] possibleConnections = new int[this.numNeurons*(this.numNeurons-1)/2][2];
+        int value = 0;
         for(int i = 0; i < this.numNeurons; i++){
             for(int j = i; j < this.numNeurons; j++){
-                
+                if(!(sortedByLayer[i].containsConnection(sortedByLayer[j]))){
+                    possibleConnections[value][0] = i;
+                    possibleConnections[value][1] = j;
+                    value++;
+                }
             }
         }
+        if(value == 0){
+            return false;
+        }
+        value = (int) (Math.random()*value);
+        sortedByLayer[possibleConnections[value][0]].addConnection(sortedByLayer[possibleConnections[value][1]]);
+        return true;
+    }
+
+    private boolean removeConnection(){
+        int[] possibleRemovals = new int[this.numNeurons-this.numInputs];
+        for(int i = this.numInputs; i < this.numNeurons; i++){
+            //Check if corresponding neuron has 0 inputs
+        }
+        //Choose random neuron that does not have 0 inputs
+        int connection = this.allNeurons[(int)(Math.random()*this.numNeurons)].removeRandomConnection();
+        while(connection == -1){
+            connection = this.allNeurons[(int)(Math.random()*this.numNeurons)].removeRandomConnection();
+        }
+        return true;
     }
 
     public void randomMutation(double[] chances){
