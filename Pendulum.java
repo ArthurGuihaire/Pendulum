@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import nnet.Nnet;
+import nnet.Neat;
 import java.util.Scanner;
 public class Pendulum{
     // region Variables
@@ -105,6 +106,38 @@ public class Pendulum{
             centerVelOld = centerVel;
             updateInput(input);
             centerVel = speedMultiplier*nnet.compute_output_values(input)[0];
+            x += centerVel;
+            if(x>1200){
+                x = 1200;
+                centerVel = 0;
+                userScore -= 1000;
+            }
+            else if(x<-1200){
+                x = -1200;
+                centerVel = 0;
+                userScore -= 1000;
+            }
+            physics(centerVel - centerVelOld);
+            if(i % score_frequency == 0){
+                userScore += Math.max(0, -yRel);
+                userScore -= 5000*Math.pow(angularVelocity, 2);
+                userScore -= movement_cost*Math.abs(centerVel);
+            }
+        }
+        return userScore;
+    }
+
+    public static int scoreNeat(Neat nnet, double startAngle){
+        userScore = 0;
+        x = 0;
+        angle = startAngle;
+        angularVelocity = 0;
+        double[] input = new double[4];
+        centerVel = 0;
+        for(int i = 0; i<iterations; i++){
+            centerVelOld = centerVel;
+            updateInput(input);
+            centerVel = speedMultiplier*nnet.forwardPropogation(input)[0];
             x += centerVel;
             if(x>1200){
                 x = 1200;

@@ -13,6 +13,7 @@ public class Neuron {
         this.id = id;
         this.numInputs = inputs.length;
         this.connectionWeights = new double[this.numInputs];
+        this.inputConnections = new Neuron[this.numInputs];
         for(int i = 0; i < this.numInputs; i++){
             connectionWeights[i] = Math.random()*2-1;
             inputConnections[i] = inputs[i];
@@ -31,6 +32,7 @@ public class Neuron {
             return this.value;
         }
         else{
+            this.value = 0;
             for(int i = 0; i < this.numInputs; i++){
                 this.value += inputConnections[i].getActivation();
             }
@@ -43,45 +45,60 @@ public class Neuron {
 
     protected void addConnection(Neuron newNeuron){
         Neuron[] oldNeurons = this.inputConnections;
-        this.inputConnections = new Neuron[this.numInputs+1];
-        for(int i = 0; i < this.numInputs; i++){
+        double[] oldWeights = this.connectionWeights;
+        this.inputConnections = new Neuron[this.numInputs + 1];
+        this.connectionWeights = new double[this.numInputs + 1];
+        for (int i = 0; i < this.numInputs; i++){
             this.inputConnections[i] = oldNeurons[i];
+            this.connectionWeights[i] = oldWeights[i];
         }
         this.inputConnections[this.numInputs] = newNeuron;
+        this.connectionWeights[this.numInputs] = Math.random() * 2 - 1;
         this.numInputs++;
     }
-
+    
     protected int removeRandomConnection(){
-        if(this.numInputs == 0){
+        if (this.numInputs == 0) {
             return -1;
         }
         int index = (int)(Math.random() * this.numInputs);
-        Neuron[] newNeurons = new Neuron[this.numInputs-1];
         int returnValue = this.inputConnections[index].id;
+        Neuron[] newNeurons = new Neuron[this.numInputs - 1];
+        double[] newWeights = new double[this.numInputs - 1];
         System.arraycopy(this.inputConnections, 0, newNeurons, 0, index);
-        System.arraycopy(this.inputConnections, index+1, newNeurons, index, this.numInputs-index-1);
+        System.arraycopy(this.connectionWeights, 0, newWeights, 0, index);
+        System.arraycopy(this.inputConnections, index + 1, newNeurons, index, this.numInputs - index - 1);
+        System.arraycopy(this.connectionWeights, index + 1, newWeights, index, this.numInputs - index - 1);
+        
         this.inputConnections = newNeurons;
+        this.connectionWeights = newWeights;
         this.numInputs--;
         return returnValue;
     }
-
+    
     protected boolean removeSpecificConnection(int id){
-        int index;
-        for(index = 0; index < this.numInputs; index++){
-            if(this.inputConnections[index].id == id){
+        int index = -1;
+        for (int i = 0; i < this.numInputs; i++){
+            if (this.inputConnections[i].id == id){
+                index = i;
                 break;
             }
         }
-        if(index == this.numInputs){
+        if (index == -1){
             return false;
         }
-        Neuron[] newNeurons = new Neuron[this.numInputs-1];
+        Neuron[] newNeurons = new Neuron[this.numInputs - 1];
+        double[] newWeights = new double[this.numInputs - 1];
         System.arraycopy(this.inputConnections, 0, newNeurons, 0, index);
-        System.arraycopy(this.inputConnections, index+1, newNeurons, index, this.numInputs-index-1);
+        System.arraycopy(this.connectionWeights, 0, newWeights, 0, index);
+        System.arraycopy(this.inputConnections, index + 1, newNeurons, index, this.numInputs - index - 1);
+        System.arraycopy(this.connectionWeights, index + 1, newWeights, index, this.numInputs - index - 1);
         this.inputConnections = newNeurons;
+        this.connectionWeights = newWeights;
         this.numInputs--;
         return true;
     }
+    
 
     protected boolean containsConnection(Neuron connection){
         for(int i = 0; i < this.numInputs; i++){
@@ -92,6 +109,13 @@ public class Neuron {
         return false;
     }
 
+    protected void changeWeights(double learningRate){
+        for(int i = 0; i < this.numInputs; i++){
+            this.connectionWeights[i] += (2*Math.random()-1) * learningRate;
+        }
+        this.bias += (2*Math.random()-1) * learningRate;
+    }
+
     protected void setValue(double value){
         this.value = value;
         this.activated = true;
@@ -99,5 +123,6 @@ public class Neuron {
 
     protected void reset(){
         this.activated = false;
+        this.value = 0;
     }
 }

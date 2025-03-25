@@ -2,16 +2,17 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import nnet.Nnet;
+import nnet.Neat;
 
 public class pendulumNnet {
     public static void main(String[] args){
         for(String arg : args){
             if(arg.equals("gen")){
-                geneticAI();
+                geneticNnet();
             }
         }
     }
-    private static void geneticAI() {
+    private static void geneticNnet() {
         double learning_rate = 0.001;
         int startingPopulation = 200;
         int keepHighScores = 15;

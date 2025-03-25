@@ -9,21 +9,22 @@ public class Neat {
     private Neuron[] allNeurons;
     private int numNeurons;
     private int latestId;
-    public Neat(int inputs, int outputs){
-        // For optimization remove this.inputsNeurons and this.outputNeurons;
+    private double learningRate;
+    public Neat(int inputs, int outputs, double learnRate){
         this.inputNeurons = new Neuron[inputs];
         this.numInputs = inputs;
         this.outputNeurons = new Neuron[outputs];
         this.numOutputs = outputs;
         this.numNeurons = inputs + outputs;
         this.allNeurons = new Neuron[inputs+outputs];
+        this.learningRate = learnRate;
         Neuron[] empty = new Neuron[0];
         for(int i = 0; i < inputs; i++){
             this.inputNeurons[i] = new Neuron(empty, i, 0);
         }
         this.latestId = inputs;
         for(; latestId < inputs+outputs; latestId++){
-            this.outputNeurons[latestId] = new Neuron(this.inputNeurons, latestId, 1);
+            this.outputNeurons[latestId-inputs] = new Neuron(this.inputNeurons, latestId, 1);
         }
         System.arraycopy(this.inputNeurons, 0, this.allNeurons, 0, inputs);
         System.arraycopy(this.outputNeurons, 0, this.allNeurons, inputs, outputs);
@@ -44,12 +45,33 @@ public class Neat {
         return outputs;
     }
 
-    private void addNeuron(){
-        int neuron = this.numInputs + (int)(Math.random() * (this.numNeurons - this.numInputs));
-        int removed = this.allNeurons[neuron].removeRandomConnection();
-        double layerValue = (this.allNeurons[neuron].layerValue + this.allNeurons[removed].layerValue)/2;
+    private boolean addNeuron(){
+        int[] possibleSplits = new int[this.numNeurons-this.numInputs];
+        int count = 0;
+        for(int i = this.numInputs; i < this.numNeurons; i++){
+            if(this.allNeurons[i].numInputs > 0){
+                possibleSplits[count] = i;
+                count++;
+            }
+        }
+        if(count == 0){
+            return false;
+        }
+        int neuron = possibleSplits[(int)(Math.random() * count)];
+        int removedId = this.allNeurons[neuron].removeRandomConnection();
+        int removedIndex = -1;
+        for (int i = 0; i < this.numNeurons; i++){
+            if (this.allNeurons[i].id == removedId){
+                removedIndex = i;
+                break;
+            }
+        }
+        if (removedIndex == -1){
+            return false;
+        }
+        double layerValue = (this.allNeurons[neuron].layerValue + this.allNeurons[removedIndex].layerValue)/2;
         Neuron[] temp = new Neuron[1];
-        temp[0] = this.allNeurons[removed];
+        temp[0] = this.allNeurons[removedIndex];
         Neuron[] oldNeurons = this.allNeurons;
         this.allNeurons = new Neuron[this.numNeurons + 1];
         System.arraycopy(oldNeurons, 0, this.allNeurons, 0, this.numNeurons);
@@ -57,6 +79,7 @@ public class Neat {
         this.allNeurons[neuron].addConnection(this.allNeurons[this.numNeurons]);
         this.numNeurons++;
         this.latestId++;
+        return true;
     }
 
     private boolean removeNeuron(){
@@ -71,16 +94,17 @@ public class Neat {
         System.arraycopy(this.allNeurons, 0, newNeurons, 0, neuron);
         System.arraycopy(this.allNeurons, neuron+1, newNeurons, neuron, this.numNeurons-neuron-1);
         this.allNeurons = newNeurons;
+        this.numNeurons--;
         return true;
     }
 
     private boolean addConnection(){
-        Neuron[] sortedByLayer = new Neuron[this.numNeurons];
-        Arrays.sort(sortedByLayer, (a, b) -> Integer.compare(b.id, a.id));
+        Neuron[] sortedByLayer = Arrays.copyOfRange(this.allNeurons, this.numInputs, this.numNeurons);
+        Arrays.sort(sortedByLayer, (a, b) -> Double.compare(b.layerValue, a.layerValue));
         int[][] possibleConnections = new int[this.numNeurons*(this.numNeurons-1)/2][2];
         int value = 0;
-        for(int i = 0; i < this.numNeurons; i++){
-            for(int j = i; j < this.numNeurons; j++){
+        for(int i = 0; i < sortedByLayer.length; i++){
+            for(int j = i+1; j < this.numNeurons-this.numInputs; j++){
                 if(!(sortedByLayer[i].containsConnection(sortedByLayer[j]))){
                     possibleConnections[value][0] = i;
                     possibleConnections[value][1] = j;
@@ -98,15 +122,27 @@ public class Neat {
 
     private boolean removeConnection(){
         int[] possibleRemovals = new int[this.numNeurons-this.numInputs];
+        int count = 0;
         for(int i = this.numInputs; i < this.numNeurons; i++){
-            //Check if corresponding neuron has 0 inputs
+            if(this.allNeurons[i].numInputs > 0){
+                possibleRemovals[count] = i;
+                count++;
+            }
         }
-        //Choose random neuron that does not have 0 inputs
-        int connection = this.allNeurons[(int)(Math.random()*this.numNeurons)].removeRandomConnection();
+        if(count==0){
+            return false;
+        }
+        int connection = this.allNeurons[possibleRemovals[(int)(Math.random()*count)]].removeRandomConnection();
         while(connection == -1){
             connection = this.allNeurons[(int)(Math.random()*this.numNeurons)].removeRandomConnection();
         }
         return true;
+    }
+
+    private void changeWeights(){
+        for(int i = numInputs; i < numNeurons; i++){
+            this.allNeurons[i].changeWeights(this.learningRate);
+        }
     }
 
     public void randomMutation(double[] chances){
@@ -130,13 +166,20 @@ public class Neat {
                 else{
                     randomValue -= chances[2];
                     if(randomValue < chances[3]){
-                        // Remove connection
+                        boolean successful = this.removeConnection();
+                        if(!successful){
+                            this.randomMutation(chances);
+                        }
                     }
                     else{
-                        // Change weights
+                        this.changeWeights();
                     }
                 }
             }
         }
+    }
+
+    public void changeLearningRate(double newLearningRate){
+        this.learningRate = newLearningRate;
     }
 }
