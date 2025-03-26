@@ -30,6 +30,53 @@ public class Neat {
         System.arraycopy(this.outputNeurons, 0, this.allNeurons, inputs, outputs);
     }
 
+    public Neat(Neuron[] neurons, int latestId, int numInputs, int numOutputs, double learningRate){
+        this.allNeurons = neurons;
+        this.inputNeurons = new Neuron[numInputs];
+        System.arraycopy(this.allNeurons, 0, this.inputNeurons, 0,  numInputs);
+        this.outputNeurons = new Neuron[numOutputs];
+        System.arraycopy(this.allNeurons, numInputs, this.outputNeurons, 0, numOutputs);
+        this.numInputs = numInputs;
+        this.numOutputs = numOutputs;
+        this.numNeurons = neurons.length;
+        this.learningRate = learningRate;
+        this.latestId = latestId;
+    }
+
+    public Neat copy(){
+        Neuron[] newNeurons = new Neuron[this.numNeurons];
+        for(int i = 0; i < this.numNeurons; i++){
+            newNeurons[i] = this.allNeurons[i].shallowCopy();
+        }
+        for (int i = this.numInputs; i < this.numNeurons; i++){
+            int nInputs = this.allNeurons[i].numInputs;
+            Neuron[] newConnections = new Neuron[nInputs];
+            double[] newWeights = new double[nInputs];
+            for (int j = 0; j < nInputs; j++){
+                // Get the id of the original connected neuron.
+                int connId = this.allNeurons[i].inputConnections[j].id;
+                // Find its index in the original allNeurons array.
+                int index = -1;
+                for (int k = 0; k < this.numNeurons; k++){
+                    if(this.allNeurons[k].id == connId){
+                        index = k;
+                        break;
+                    }
+                }
+                if (index != -1) {
+                    // Point to the new copy.
+                    newConnections[j] = newNeurons[index];
+                    newWeights[j] = this.allNeurons[i].connectionWeights[j];
+                }
+            }
+            // Set the connections of the copied neuron.
+            newNeurons[i].setConnections(newConnections, newWeights);
+       }
+       Neat newNet = new Neat(newNeurons, this.latestId, this.numInputs, this.numOutputs, this.learningRate);
+       newNet.numNeurons = this.numNeurons; // Preserve the correct count.
+       return newNet;
+    }
+
     public double[] forwardPropogation(double[] inputs){
         int i;
         for(i = 0; i < this.numInputs; i++){
@@ -57,26 +104,24 @@ public class Neat {
         if(count == 0){
             return false;
         }
-        int neuron = possibleSplits[(int)(Math.random() * count)];
-        int removedId = this.allNeurons[neuron].removeRandomConnection();
-        int removedIndex = -1;
-        for (int i = 0; i < this.numNeurons; i++){
-            if (this.allNeurons[i].id == removedId){
-                removedIndex = i;
+        int neuronIndex = possibleSplits[(int)(Math.random() * count)];
+        int removedId = this.allNeurons[neuronIndex].removeRandomConnection();
+        int removedIndex = 0;
+        for (; removedIndex < this.numNeurons; removedIndex++){
+            if (this.allNeurons[removedIndex].id == removedId){
                 break;
             }
         }
-        if (removedIndex == -1){
+        if (removedIndex == this.numNeurons){
             return false;
         }
-        double layerValue = (this.allNeurons[neuron].layerValue + this.allNeurons[removedIndex].layerValue)/2;
-        Neuron[] temp = new Neuron[1];
-        temp[0] = this.allNeurons[removedIndex];
+        double layerValue = (this.allNeurons[neuronIndex].layerValue + this.allNeurons[removedIndex].layerValue)/2;
+        Neuron[] temp = {this.allNeurons[removedIndex]};
         Neuron[] oldNeurons = this.allNeurons;
         this.allNeurons = new Neuron[this.numNeurons + 1];
         System.arraycopy(oldNeurons, 0, this.allNeurons, 0, this.numNeurons);
         this.allNeurons[this.numNeurons] = new Neuron(temp, this.latestId, layerValue);
-        this.allNeurons[neuron].addConnection(this.allNeurons[this.numNeurons]);
+        this.allNeurons[neuronIndex].addConnection(this.allNeurons[this.numNeurons]);
         this.numNeurons++;
         this.latestId++;
         return true;
@@ -105,7 +150,7 @@ public class Neat {
         int value = 0;
         for(int i = 0; i < sortedByLayer.length; i++){
             for(int j = i+1; j < this.numNeurons-this.numInputs; j++){
-                if(!(sortedByLayer[i].containsConnection(sortedByLayer[j]))){
+                if(!(sortedByLayer[i].containsConnection(sortedByLayer[j])) && sortedByLayer[i].layerValue > sortedByLayer[j].layerValue){
                     possibleConnections[value][0] = i;
                     possibleConnections[value][1] = j;
                     value++;
@@ -173,6 +218,18 @@ public class Neat {
                     }
                     else{
                         this.changeWeights();
+                    }
+                }
+            }
+        }
+        for(Neuron neuron:this.allNeurons){
+            if(neuron == null){
+                System.out.println("Warning - a Neuron is null");
+            }
+            else{
+                for(Neuron inputNeuron : neuron.inputConnections){
+                    if(inputNeuron == null){
+                        System.out.println("Warning - an input Neuron is null");
                     }
                 }
             }

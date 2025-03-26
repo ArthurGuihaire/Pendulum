@@ -1,9 +1,9 @@
 package nnet;
 
 public class Neuron {
-    private Neuron[] inputConnections;
-    private double[] connectionWeights;
-    private double bias;
+    protected Neuron[] inputConnections;
+    protected double[] connectionWeights;
+    protected double bias;
     private boolean activated;
     private double value;
     protected int numInputs;
@@ -14,6 +14,7 @@ public class Neuron {
         this.numInputs = inputs.length;
         this.connectionWeights = new double[this.numInputs];
         this.inputConnections = new Neuron[this.numInputs];
+        this.layerValue = layerValue;
         for(int i = 0; i < this.numInputs; i++){
             connectionWeights[i] = Math.random()*2-1;
             inputConnections[i] = inputs[i];
@@ -25,6 +26,18 @@ public class Neuron {
             this.bias = Math.random()*0.1-0.05;
         }
         this.activated = false;
+    }
+
+    protected Neuron shallowCopy(){
+        Neuron copy = new Neuron(new Neuron[0], this.id, this.layerValue);
+        copy.bias = this.bias;
+        return copy;
+    }
+
+    protected void setConnections(Neuron[] connections, double[] weights){
+        this.inputConnections = connections;
+        this.connectionWeights = weights;
+        this.numInputs = connections.length;
     }
 
     protected double getActivation(){
@@ -44,6 +57,9 @@ public class Neuron {
     }
 
     protected void addConnection(Neuron newNeuron){
+        if(newNeuron.layerValue >= this.layerValue){
+            System.out.println("Warning - possible circular network");
+        }
         Neuron[] oldNeurons = this.inputConnections;
         double[] oldWeights = this.connectionWeights;
         this.inputConnections = new Neuron[this.numInputs + 1];
@@ -99,7 +115,6 @@ public class Neuron {
         return true;
     }
     
-
     protected boolean containsConnection(Neuron connection){
         for(int i = 0; i < this.numInputs; i++){
             if(this.inputConnections[i] == connection){
