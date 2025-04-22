@@ -2,8 +2,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import nnet.Nnet;
-import nnet.Neat;
+import java_nnet.Nnet;
+import java_nnet.Neat;
 import java.util.Scanner;
 public class Pendulum{
     // region Variables

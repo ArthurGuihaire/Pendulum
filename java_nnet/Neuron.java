@@ -1,4 +1,4 @@
-package nnet;
+package java_nnet;
 
 public class Neuron {
     protected Neuron[] inputConnections;

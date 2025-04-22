@@ -1,4 +1,4 @@
-package nnet;
+package java_nnet;
 
 import java.io.FileWriter;
 import java.io.FileReader;

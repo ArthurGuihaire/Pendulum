@@ -1,8 +1,7 @@
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import nnet.Nnet;
-import nnet.Neat;
+import java_nnet.Nnet;
 
 public class pendulumNnet {
     public static void main(String[] args){
