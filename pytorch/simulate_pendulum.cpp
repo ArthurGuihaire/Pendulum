@@ -30,7 +30,7 @@ void physics(float& x, float& angle, float& angular_velocity, float& x_rel, floa
     angular_velocity *= friction_factor;
     angle += angular_velocity;
 
-    # Update relative positions
+    // Update relative positions
     x_rel = pendulum_length * cos(angle);
     y_rel = pendulum_length * sin(angle);
 }
