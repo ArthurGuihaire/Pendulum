@@ -1,3 +1,7 @@
+from torch.utils.cpp_extension import load
+score_cpp = load(name="score_cpp", sources=["simulate_pendulum.cpp"], verbose=True)
+print("Loaded c++ file")
+
 import math
 from typing import Protocol, Any
 from copy import deepcopy
@@ -168,9 +172,14 @@ if __name__ == "__main__":
 
     print("Starting training...")
 
-    for generation in range(20):
-        with mp.Pool(processes=6) as pool:
-            scores = pool.map(score_network, network_array)
+    for generation in range(1):
+        for i in range(batch_size):
+            model = torch.jit.script(network_array[i])
+            model.save("model.pt")
+            score_cpp.load_model("model.pt")
+            input_vector = [0.1, 0.2, 0.3, 0.4]
+            score = score_cpp.score_nnet(input_vector)
+            print("Score:", score)
         top_indices = np.argsort(scores)[-5:]# [::-1]# to reverse the scores
         top_networks = [network_array[i] for i in top_indices]
         for i in range(5):
