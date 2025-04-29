@@ -14,7 +14,7 @@ float g = 0.25;
 float friction_factor = 0.995;
 float speed_multiplier = 100.0;
 float movement_cost = 0.0;
-float boundary = 1200.0
+float boundary = 1200.0;
 
 torch::jit::script::Module module;
 
@@ -42,15 +42,21 @@ float score_nnet(float startAngle) {
     float angular_velocity = 0;
     float x_rel = 0.0;
     float y_rel = -pendulum_length;
-    float input;
+    float action;
+    torch::Tensor input = torch::empty({1, 4}, torch::kFloat32);
     for(int i = 0; i < 600; i++){
-        torch::Tensor input_tensor = torch::tensor(input_vec).unsqueeze(0); // add batch dim
-        torch::Tensor output = module.forward({input_tensor}).toTensor();
-        input = output.item<float>();
-        physics(x, angle, angular_velocity, x_rel, y_rel, input);  // assuming scalar output
+        //update input
+        input[0] = cos(angle);
+        input[1] = sin(angle);
+        input[2] = angular_velocity;
+        input[3] = action;
+        
+        torch::Tensor output = module.forward(input).toTensor();
+        action = output.item<float>();
+        physics(x, angle, angular_velocity, x_rel, y_rel, action);  // assuming scalar output
         score += std::max(static_cast<float>(0.0), -y_rel);
         score -= 5000.0 * (angular_velocity * angular_velocity);
-        score -= movement_cost * std::abs(input);
+        score -= movement_cost * std::abs(action);
     }
     return score;
 }
