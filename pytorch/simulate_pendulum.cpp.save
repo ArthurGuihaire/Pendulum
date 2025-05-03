@@ -8,6 +8,7 @@
 #include <cmath>
 #include <algorithm>
 
+int iterations = 600;
 float pendulum_length = 150;
 float g = 0.25;
 float friction_factor = 0.995;
@@ -15,9 +16,12 @@ float speed_multiplier = 100.0;
 float movement_cost = 0.0;
 float boundary = 1200.0;
 
+torch::jit::script::Module module;
+
 // This function sets the model from file
-torch::jit::script::Module load_model(const std::string& path) {
-    return torch::jit::load(path);
+void load_model(const std::string& path) {
+    module = torch::jit::load(path);
+    module.eval();
 }
 
 void physics(float& x, float& angle, float& angular_velocity, float& x_rel, float& y_rel, float& input){
@@ -31,7 +35,7 @@ void physics(float& x, float& angle, float& angular_velocity, float& x_rel, floa
     y_rel = pendulum_length * sin(angle);
 }
 
-float score_nnet(float startAngle, int iterations, int model_number) {
+float score_nnet(float startAngle) {
     float score = 0;
     float x = 0;
     float angle = startAngle;
@@ -39,8 +43,6 @@ float score_nnet(float startAngle, int iterations, int model_number) {
     float x_rel = 0.0;
     float y_rel = -pendulum_length;
     float action;
-    auto module = load_model("pytorch_models/model_" + std::to_string(model_number) + ".pt");
-    module.eval();
     torch::Tensor input = torch::empty({1, 4}, torch::kFloat32);
     std::vector<c10::IValue> input_vector(1);
     torch::NoGradGuard no_grad;
@@ -51,7 +53,6 @@ float score_nnet(float startAngle, int iterations, int model_number) {
         input[0][2] = angular_velocity;
         input[0][3] = action;
 
-        input_vector[0] = input[0];
         at::Tensor output = module.forward(input_vector).toTensor();
         action = output.item<float>();
         physics(x, angle, angular_velocity, x_rel, y_rel, action);  // assuming scalar output
@@ -62,13 +63,7 @@ float score_nnet(float startAngle, int iterations, int model_number) {
     return score;
 }
 
-// Expose the program to python
 PYBIND11_MODULE(score_cpp, m) {
-  m.def("load_model", &load_model, "Load a TorchScript model");
-  m.def(
-    "score_nnet",
-    &score_nnet,
-    "Score using TorchScript model",
-    pybind11::call_guard<pybind11::gil_scoped_release>()    // <<< release GIL
-  );
+    m.def("load_model", &load_model, "Load a TorchScript model");
+    m.def("score_nnet", &score_nnet, "Score using TorchScript model");
 }
