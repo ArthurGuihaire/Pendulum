@@ -31,25 +31,31 @@ def mutate(model: nn.Sequential, rate=0.1):
     return new_model
 
 def score_network(index):
-    return score_cpp.score_nnet(0.0, 600, scripted_networks[index])
+    return score_cpp.score_nnet(0.0, iterations, scripted_networks[index])
 
 if __name__  == "__main__":
-    generations = 100
+    generations = 50
     batch_size = 240
     network_array = []
     scripted_networks = []
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--load-model", action="store_true")
+    parser.add_argument("--learning-rate", type=float, default=0.1)
+    parser.add_argument("--iterations", type=int, default=600)
+    parser.add_argument("--conserve-nets", type=float, default=0.9)
     args = parser.parse_args()
+    learning_rate = args.learning_rate
+    iterations = args.iterations
+    proportion_old_networks = args.conserve_nets
     if args.load_model:
         network_array.append(nn.Sequential(
                 nn.Linear(4, 16),
                 nn.Tanh(),
                 nn.Linear(16, 1),
-                nn.Tanh())
-            .eval())
-        network_array[0].load_state_dict(torch.load(f"pytorch_models/model_{generations-1}.pt"))
+                nn.Tanh()))
+        network_array[0].load_state_dict(torch.load("model_99.pt"))
+        network_array[0].eval()
         scripted_networks.append(script_model(network_array[0]))
         for i in range(batch_size-1):
             network_array.append(mutate(network_array[0], 0.01))
@@ -68,8 +74,6 @@ if __name__  == "__main__":
             scripted_networks.append(script_model(network_array[i]))
 
         print("Random networks created")
-
-    learning_rate = 0.1
 
     scores = np.empty(batch_size, dtype=float)
 
@@ -91,7 +95,8 @@ if __name__  == "__main__":
             network_array[i+num_copies_total] = nn.Sequential(
                 nn.Linear(4, 16),
                 nn.Tanh(),
-                nn.Linear(16,1)
+                nn.Linear(16,1),
+                nn.Tanh()
             )
 
         print(f"Iteration: {generation}")

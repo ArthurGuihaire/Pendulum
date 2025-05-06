@@ -11,7 +11,7 @@
 float g = 0.25;
 int speedMultiplier = 100;
 int score_frequency = 1;
-int pendulum_length = 150;
+int pendulum_length = 300;
 float friction_factor = 0.995;
 int movement_cost = 0;
 
@@ -57,8 +57,7 @@ float score_nnet(float startAngle, int iterations, torch::jit::Module module) {
         float net_out = module.forward(input_vector)
                               .toTensor()
                               .item<float>();
-
-        // match Java: centerVel = speedMultiplier * raw
+        
         float centerVel = speedMultiplier * net_out;
         float accel     = centerVel - old_vel;
         old_vel = centerVel;
@@ -81,7 +80,7 @@ float score_nnet(float startAngle, int iterations, torch::jit::Module module) {
         // only accumulate every score_frequency steps
         if (i % score_frequency == 0) {
             score += std::max(0.0f, -pendulum_length*sin(angle));
-            score -= 50000.0f * (angular_velocity * angular_velocity);
+            score -= 5000.0f * (angular_velocity * angular_velocity);
             score -= movement_cost * std::abs(centerVel);
         }
     }

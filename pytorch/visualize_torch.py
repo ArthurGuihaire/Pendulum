@@ -42,6 +42,10 @@ def simulate(model, start_angle, iterations):
             accel = center_vel - old_vel
             old_vel = center_vel
 
+            if i < 5:
+                print(f"py step {i} inp = {inp.numpy().tolist()}, out = {net_out}")
+
+
             x += center_vel
             if x > 1200.0:
                 x, center_vel, score = 1200.0, 0.0, score - 1000.0
